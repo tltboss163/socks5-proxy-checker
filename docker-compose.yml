@@ -1,0 +1,15 @@
+version: "3.8"
+
+services:
+  proxy-checker:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - MAX_CONCURRENT=50
+      - DOWNLOAD_TEST_URL=https://speed.hetzner.de/1MB.bin
+      - DOWNLOAD_SIZE_BYTES=1048576
+      - PROXY_TIMEOUT=15
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
