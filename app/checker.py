@@ -6,17 +6,21 @@ from dataclasses import dataclass
 
 import aiohttp
 import aiohttp_socks
-import httpx
 
 from app.models import ProxyResult
 
-MAX_CONCURRENT = int(__import__("os").getenv("MAX_CONCURRENT", "50"))
+MAX_CONCURRENT = int(__import__("os").getenv("MAX_CONCURRENT", "300"))
+# Один запрос через прокси отдаёт и пинг, и страну exit-IP
+GEO_URL = __import__("os").getenv(
+    "GEO_URL",
+    "http://ip-api.com/json/?fields=status,message,country,countryCode"
+)
 DOWNLOAD_TEST_URL = __import__("os").getenv(
     "DOWNLOAD_TEST_URL",
-    "https://speed.hetzner.de/1MB.bin"
+    "https://speed.cloudflare.com/__down?bytes=1048576"
 )
 DOWNLOAD_SIZE = int(__import__("os").getenv("DOWNLOAD_SIZE_BYTES", "1048576"))
-PROXY_TIMEOUT = int(__import__("os").getenv("PROXY_TIMEOUT", "15"))
+PROXY_TIMEOUT = int(__import__("os").getenv("PROXY_TIMEOUT", "10"))
 
 
 @dataclass
@@ -72,21 +76,6 @@ def parse_proxy(line: str) -> Optional[ParsedProxy]:
     return None
 
 
-async def get_country(ip: str) -> Dict[str, Optional[str]]:
-    try:
-        async with httpx.AsyncClient(timeout=5) as client:
-            resp = await client.get(f"http://ip-api.com/json/{ip}?fields=status,country,countryCode")
-            data = resp.json()
-            if data.get("status") == "success":
-                return {
-                    "country": data.get("country"),
-                    "country_code": data.get("countryCode")
-                }
-    except Exception:
-        pass
-    return {"country": None, "country_code": None}
-
-
 async def check_proxy(
     proxy: ParsedProxy,
     semaphore: asyncio.Semaphore,
@@ -110,15 +99,14 @@ async def check_proxy(
                 connector=connector,
                 timeout=session_timeout
             ) as session:
-                async with session.get("http://httpbin.org/ip") as resp:
+                async with session.get(GEO_URL) as resp:
                     if resp.status == 200:
                         data = await resp.json()
-                        real_ip = data.get("origin", proxy.host).split(",")[0].strip()
                         latency = round((time.monotonic() - start) * 1000, 2)
                         is_working = True
-                        geo = await get_country(real_ip)
-                        country = geo["country"]
-                        country_code = geo["country_code"]
+                        if data.get("status") == "success":
+                            country = data.get("country")
+                            country_code = data.get("countryCode")
                     else:
                         error = f"HTTP {resp.status}"
 
@@ -147,7 +135,7 @@ async def check_proxy(
         except Exception as e:
             error = str(e)[:120]
         finally:
-            connector.close()
+            await connector.close()
 
         return ProxyResult(
             host=proxy.host,
