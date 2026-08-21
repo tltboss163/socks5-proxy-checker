@@ -1,5 +1,6 @@
 name: Check SOCKS5 Proxies
 
+# Результаты коммитятся в working_proxies.json/.txt/.csv и README.md
 on:
   schedule:
     - cron: '0 */6 * * *'   # каждые 6 часов
