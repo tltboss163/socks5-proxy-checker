@@ -195,9 +195,10 @@ async def main():
     with open(RESULT_CSV, "w", encoding="utf-8") as f:
         f.write("host,port,country,country_code,latency_ms,download_speed_kbps,download_time_ms,is_working,error\n")
         for r in results:
+            error_escaped = str(r.get("error", "")).replace('"', '""')
             f.write(f"{r['host']},{r['port']},{r.get('country','')},{r.get('country_code','')},"
                     f"{r['latency_ms']},{r['download_speed_kbps']},{r['download_time_ms']},"
-                    f"{r['is_working']},\"{str(r.get('error','')).replace('\"','\"\"')}\"\n")
+                    f"{r['is_working']},\"{error_escaped}\"\n")
 
     # README
     rows = ""
