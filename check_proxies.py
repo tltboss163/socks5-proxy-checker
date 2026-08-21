@@ -5,22 +5,25 @@ import asyncio
 import json
 import re
 import os
+import time
 from datetime import datetime
 from typing import List, Optional, Dict, Set
 
 import aiohttp
 import aiohttp_socks
-import httpx
 
 RESULT_JSON = "working_proxies.json"
 RESULT_TXT = "working_proxies.txt"
 RESULT_CSV = "working_proxies.csv"
 README = "README.md"
 
-DOWNLOAD_URL = "https://speed.hetzner.de/1MB.bin"
+# Один запрос через прокси отдаёт и пинг, и страну exit-IP (без httpbin и без
+# отдельных запросов к ip-api с IP раннера, которые упираются в rate-limit 45/min)
+GEO_URL = "http://ip-api.com/json/?fields=status,message,country,countryCode"
+DOWNLOAD_URL = "https://speed.cloudflare.com/__down?bytes=1048576"
 DOWNLOAD_SIZE = 1048576
-TIMEOUT = 15
-CONCURRENT = 50
+TIMEOUT = 10
+CONCURRENT = 300
 
 SOURCES = [
     "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/socks5.txt",
@@ -79,18 +82,6 @@ def parse_proxy(line: str) -> Optional[Dict]:
     return None
 
 
-async def get_country(ip: str) -> Dict[str, Optional[str]]:
-    try:
-        async with httpx.AsyncClient(timeout=5) as client:
-            resp = await client.get(f"http://ip-api.com/json/{ip}?fields=status,country,countryCode")
-            data = resp.json()
-            if data.get("status") == "success":
-                return {"country": data.get("country"), "country_code": data.get("countryCode")}
-    except Exception:
-        pass
-    return {"country": None, "country_code": None}
-
-
 async def check_one(proxy: Dict, semaphore: asyncio.Semaphore) -> Dict:
     async with semaphore:
         connector = aiohttp_socks.ProxyConnector.from_url(proxy["url"])
@@ -106,15 +97,14 @@ async def check_one(proxy: Dict, semaphore: asyncio.Semaphore) -> Dict:
 
         try:
             async with aiohttp.ClientSession(connector=connector, timeout=session_timeout) as session:
-                async with session.get("http://httpbin.org/ip") as resp:
+                async with session.get(GEO_URL) as resp:
                     if resp.status == 200:
                         data = await resp.json()
-                        real_ip = data.get("origin", proxy["host"]).split(",")[0].strip()
                         latency = round((time.monotonic() - start) * 1000, 2)
                         is_working = True
-                        geo = await get_country(real_ip)
-                        country = geo["country"]
-                        country_code = geo["country_code"]
+                        if data.get("status") == "success":
+                            country = data.get("country")
+                            country_code = data.get("countryCode")
                     else:
                         error = f"HTTP {resp.status}"
 
@@ -141,7 +131,7 @@ async def check_one(proxy: Dict, semaphore: asyncio.Semaphore) -> Dict:
         except Exception as e:
             error = str(e)[:120]
         finally:
-            connector.close()
+            await connector.close()
 
         return {
             **proxy,
