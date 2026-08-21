@@ -4,7 +4,6 @@
 import asyncio
 import json
 import re
-import os
 import time
 from datetime import datetime
 from typing import List, Optional, Dict, Set
@@ -15,12 +14,13 @@ import aiohttp_socks
 RESULT_JSON = "working_proxies.json"
 RESULT_TXT = "working_proxies.txt"
 RESULT_CSV = "working_proxies.csv"
-README = "README.md"
 
 # Один запрос через прокси отдаёт и пинг, и страну exit-IP (без httpbin и без
 # отдельных запросов к ip-api с IP раннера, которые упираются в rate-limit 45/min)
 GEO_URL = "http://ip-api.com/json/?fields=status,message,country,countryCode"
-DOWNLOAD_URL = "https://speed.cloudflare.com/__down?bytes=1048576"
+# Plain HTTP: HTTPS-тест через бесплатные прокси часто ломается об MITM
+# ([SSL: CERTIFICATE_VERIFY_FAILED]) — считаем байты по обычному HTTP
+DOWNLOAD_URL = "http://speedtest.tele2.net/1MB.zip"
 DOWNLOAD_SIZE = 1048576
 TIMEOUT = 10
 CONCURRENT = 300
@@ -189,47 +189,6 @@ async def main():
             f.write(f"{r['host']},{r['port']},{r.get('country','')},{r.get('country_code','')},"
                     f"{r['latency_ms']},{r['download_speed_kbps']},{r['download_time_ms']},"
                     f"{r['is_working']},\"{error_escaped}\"\n")
-
-    # README
-    rows = ""
-    for r in results:
-        flag = get_flag(r.get('country_code')) if r.get('country_code') else '🏳️'
-        status = "✅" if r["is_working"] else "❌"
-        speed = f"{r['download_speed_kbps']} KB/s" if r['is_working'] else "—"
-        rows += f"| {status} | `{r['host']}:{r['port']}` | {flag} {r.get('country','?')} | {r['latency_ms']}ms | {speed} | {r.get('error','—')} |\n"
-
-    readme = f"""# 🧦 SOCKS5 Proxy Checker
-
-![Workflow](https://github.com/{os.getenv('GITHUB_REPOSITORY','user/repo')}/actions/workflows/check-proxies.yml/badge.svg)
-
-**Последняя проверка:** `{datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}`
-
-| Статус | Прокси | Страна | Задержка | Скорость | Ошибка |
-|--------|--------|--------|----------|----------|--------|
-{rows}
-
-**Спарсено:** {len(proxies_lines)} | **Проверено:** {len(proxies)} | **Рабочих:** {len(working)}
-
----
-
-## 📥 Файлы
-
-- `working_proxies.json` — полные данные в JSON
-- `working_proxies.txt` — список рабочих прокси
-- `working_proxies.csv` — таблица для Excel/Google Sheets
-
-## 🌐 Источники
-
-Прокси спарсены автоматически с:
-- GitHub репозиториев proxy-листов
-- ProxyScrape API
-- Proxy-List.download
-
-Workflow запускается автоматически каждые 6 часов.
-"""
-
-    with open(README, "w", encoding="utf-8") as f:
-        f.write(readme)
 
     print(f"✅ Готово! Спарсено: {len(proxies_lines)} | Проверено: {len(proxies)} | Рабочих: {len(working)}")
 

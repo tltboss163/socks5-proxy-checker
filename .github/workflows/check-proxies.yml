@@ -30,6 +30,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add working_proxies.json working_proxies.txt working_proxies.csv README.md
+          git add working_proxies.json working_proxies.txt working_proxies.csv
           git diff --staged --quiet || git commit -m "Update proxy list [$(date -u +%Y-%m-%d_%H:%M)]"
           git push
