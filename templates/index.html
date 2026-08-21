@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧦 SOCKS5 Proxy Checker</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🧦 SOCKS5 Proxy Checker</h1>
+            <p>Проверка SOCKS5 прокси: страна, задержка, скорость скачивания</p>
+        </header>
+
+        <section class="input-section">
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="text">Текст</button>
+                <button class="tab-btn" data-tab="file">Файл</button>
+                <button class="tab-btn" data-tab="parse">🌐 Спарсить с сайтов</button>
+            </div>
+
+            <div class="tab-content active" id="tab-text">
+                <textarea id="proxy-input" placeholder="Введите прокси (один на строку):
+host:port
+user:pass@host:port
+host:port:user:pass"></textarea>
+                <div class="options">
+                    <label>
+                        <input type="checkbox" id="download-test" checked>
+                        Замерить скорость скачивания (1 МБ)
+                    </label>
+                    <label>
+                        Таймаут (сек):
+                        <input type="number" id="timeout" value="15" min="5" max="60">
+                    </label>
+                </div>
+                <button id="check-btn" class="btn-primary">🔍 Проверить прокси</button>
+            </div>
+
+            <div class="tab-content" id="tab-file">
+                <div class="file-drop" id="file-drop">
+                    <p>📁 Перетащите файл сюда или кликните для выбора</p>
+                    <input type="file" id="proxy-file" accept=".txt">
+                </div>
+                <div class="options">
+                    <label>
+                        <input type="checkbox" id="download-test-file" checked>
+                        Замерить скорость скачивания (1 МБ)
+                    </label>
+                    <label>
+                        Таймаут (сек):
+                        <input type="number" id="timeout-file" value="15" min="5" max="60">
+                    </label>
+                </div>
+                <button id="check-file-btn" class="btn-primary">🔍 Проверить файл</button>
+            </div>
+
+            <div class="tab-content" id="tab-parse">
+                <div class="parse-info">
+                    <p>🌐 Спарсит SOCKS5 прокси с <strong>10+ публичных источников</strong> и сразу проверит:</p>
+                    <ul>
+                        <li>GitHub репозитории с proxy-листами</li>
+                        <li>ProxyScrape API</li>
+                        <li>Proxy-List.download</li>
+                    </ul>
+                </div>
+                <div class="options">
+                    <label>
+                        <input type="checkbox" id="download-test-parse" checked>
+                        Замерить скорость скачивания (1 МБ)
+                    </label>
+                    <label>
+                        Таймаут (сек):
+                        <input type="number" id="timeout-parse" value="15" min="5" max="60">
+                    </label>
+                    <label>
+                        Макс. прокси:
+                        <input type="number" id="max-proxies" value="200" min="10" max="1000">
+                    </label>
+                </div>
+                <button id="parse-btn" class="btn-primary btn-accent">🌐 Спарсить и проверить</button>
+            </div>
+        </section>
+
+        <section class="progress-section" id="progress" style="display:none;">
+            <div class="spinner"></div>
+            <p id="progress-text">Проверяем прокси...</p>
+        </section>
+
+        <section class="results-section" id="results" style="display:none;">
+            <div class="stats">
+                <div class="stat-card">
+                    <span class="stat-value" id="stat-total">0</span>
+                    <span class="stat-label">Всего</span>
+                </div>
+                <div class="stat-card success">
+                    <span class="stat-value" id="stat-working">0</span>
+                    <span class="stat-label">Рабочих</span>
+                </div>
+                <div class="stat-card error">
+                    <span class="stat-value" id="stat-failed">0</span>
+                    <span class="stat-label">Мёртвых</span>
+                </div>
+            </div>
+
+            <div class="filters">
+                <button class="filter-btn active" data-filter="all">Все</button>
+                <button class="filter-btn" data-filter="working">Рабочие</button>
+                <button class="filter-btn" data-filter="dead">Мёртвые</button>
+                <input type="text" id="country-filter" placeholder="🔍 Фильтр по стране">
+            </div>
+
+            <div class="export-buttons">
+                <button id="export-json" class="btn-secondary">📄 JSON</button>
+                <button id="export-txt" class="btn-secondary">📝 TXT</button>
+                <button id="export-csv" class="btn-secondary">📊 CSV</button>
+            </div>
+
+            <div class="table-wrapper">
+                <table id="results-table">
+                    <thead>
+                        <tr>
+                            <th>Статус</th>
+                            <th>Прокси</th>
+                            <th>Страна</th>
+                            <th>Задержка</th>
+                            <th>Скорость</th>
+                            <th>Время скач.</th>
+                            <th>Ошибка</th>
+                        </tr>
+                    </thead>
+                    <tbody id="results-body"></tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
