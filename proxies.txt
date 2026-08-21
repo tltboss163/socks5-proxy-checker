@@ -1,0 +1,4 @@
+# Пример списка прокси. Один на строку.
+# Форматы: host:port | user:pass@host:port | host:port:user:pass
+
+# Добавь свои прокси сюда
