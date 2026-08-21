@@ -17,7 +17,7 @@ GEO_URL = __import__("os").getenv(
 )
 DOWNLOAD_TEST_URL = __import__("os").getenv(
     "DOWNLOAD_TEST_URL",
-    "https://speed.cloudflare.com/__down?bytes=1048576"
+    "http://speedtest.tele2.net/1MB.zip"
 )
 DOWNLOAD_SIZE = int(__import__("os").getenv("DOWNLOAD_SIZE_BYTES", "1048576"))
 PROXY_TIMEOUT = int(__import__("os").getenv("PROXY_TIMEOUT", "10"))
